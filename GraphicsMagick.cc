@@ -131,6 +131,7 @@ public:
   static Persistent<FunctionTemplate> constructorTemplate;
 
   Image* image;
+  char *_format;
 
 
 
@@ -177,6 +178,7 @@ public:
     NODE_SET_PROTOTYPE_METHOD(t, "flop", flop);
     NODE_SET_PROTOTYPE_METHOD(t, "affineTransform", affineTransform);
     NODE_SET_PROTOTYPE_METHOD(t, "rotate", rotate);
+    NODE_SET_PROTOTYPE_METHOD(t, "format", format);
     NODE_SET_PROTOTYPE_METHOD(t, "shear", shear);
     NODE_SET_PROTOTYPE_METHOD(t, "contrast", contrast);
     NODE_SET_PROTOTYPE_METHOD(t, "equalize", equalize);
@@ -213,7 +215,7 @@ public:
     GetExceptionInfo(&exception);
     strcpy(imageInfo->filename, "");
     Image *img = *image;
-    strcpy(img->magick, "JPEG");
+    strcpy(img->magick, image->_format);
     void* data = ImageToBlob(imageInfo, *image, &length, &exception);
     if (data) {
       //http://sambro.is-super-awesome.com/2011/03/03/creating-a-proper-buffer-in-a-node-c-addon/
@@ -361,6 +363,14 @@ public:
   static Handle<Value> rotate(const Arguments &args) {
     REQ_DOUBLE_ARG(0, degrees)
     IMAGE_METHOD(RotateImage, degrees)
+  }
+
+  static Handle<Value> format(const Arguments &args) {
+    HandleScope scope;
+    REQ_STR_ARG(0, format)
+    MagickImage *image = ObjectWrap::Unwrap<MagickImage>(args.This());
+    image->_format = *format;
+    return Undefined();
   }
 
   //http://www.graphicsmagick.org/api/shear.html#shearimage
