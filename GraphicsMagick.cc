@@ -140,8 +140,8 @@ public:
   }
 
   ~MagickImage() {
-    if (image != NULL)
-      DestroyImage(image);
+    free(_format);
+    if (image != NULL) DestroyImage(image);
   }
 
   operator Image* () const {
@@ -369,7 +369,7 @@ public:
     HandleScope scope;
     REQ_STR_ARG(0, format)
     MagickImage *image = ObjectWrap::Unwrap<MagickImage>(args.This());
-    image->_format = *format;
+    image->_format = strdup(*format);
     return Undefined();
   }
 
