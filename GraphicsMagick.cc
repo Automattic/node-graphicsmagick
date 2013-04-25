@@ -136,7 +136,7 @@ public:
 
 
   MagickImage(Image* i) : ObjectWrap(), image(i) {
-
+    _format = NULL;
   }
 
   ~MagickImage() {
