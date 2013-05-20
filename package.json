@@ -1,7 +1,7 @@
 {
 	"name": "graphicsmagick2",
 	"description": "Bindings to the graphicsmagick library.",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"author": "Izaak Schroeder",
 	"repository": {
 		"type": "git",
