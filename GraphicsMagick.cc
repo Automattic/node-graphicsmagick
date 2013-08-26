@@ -227,10 +227,10 @@ public:
       Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(String::New("Buffer")));
       Handle<Value> constructorArgs[3] = { slowBuffer->handle_, Integer::New(length), Integer::New(0) };
       Local<Object> buffer =  bufferConstructor->NewInstance(3, constructorArgs);
-      DestroyImageInfo(image);
+      DestroyImageInfo(imageInfo);
       return scope.Close(buffer);
     } else {
-      DestroyImageInfo(image);
+      DestroyImageInfo(imageInfo);
       return ThrowException(String::New("Unable to convert image to blob!"));
     }
 
