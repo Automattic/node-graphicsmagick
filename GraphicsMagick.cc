@@ -142,7 +142,6 @@ public:
 
   ~MagickImage() {
     free(_format);
-    if (image) V8::AdjustAmountOfExternalAllocatedMemory(-length);
     if (image) DestroyImage(image);
   }
 
@@ -293,7 +292,6 @@ public:
        result = ThrowException(String::New("Unable to load image!"));
     }
     else {
-      V8::AdjustAmountOfExternalAllocatedMemory(length);
       Local<Object> object = constructorTemplate->GetFunction()->NewInstance();
       MagickImage *magickImage = ObjectWrap::Unwrap<MagickImage>(object);
       magickImage->image = image;
