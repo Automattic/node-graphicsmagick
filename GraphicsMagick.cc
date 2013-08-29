@@ -133,11 +133,13 @@ public:
   Image* image;
   char *_format;
   size_t length;
+  int _quality;
 
 
 
   MagickImage(Image* i) : ObjectWrap(), image(i) {
     _format = NULL;
+    _quality = 90;
   }
 
   ~MagickImage() {
@@ -180,6 +182,7 @@ public:
     NODE_SET_PROTOTYPE_METHOD(t, "affineTransform", affineTransform);
     NODE_SET_PROTOTYPE_METHOD(t, "rotate", rotate);
     NODE_SET_PROTOTYPE_METHOD(t, "format", format);
+    NODE_SET_PROTOTYPE_METHOD(t, "quality", quality);
     NODE_SET_PROTOTYPE_METHOD(t, "shear", shear);
     NODE_SET_PROTOTYPE_METHOD(t, "contrast", contrast);
     NODE_SET_PROTOTYPE_METHOD(t, "equalize", equalize);
@@ -216,6 +219,7 @@ public:
     GetExceptionInfo(&exception);
     strcpy(imageInfo->filename, "");
     Image *img = *image;
+    imageInfo->quality = image->_quality;
     strcpy(img->magick, image->_format);
     void* data = ImageToBlob(imageInfo, *image, &length, &exception);
     if (data) {
@@ -369,6 +373,14 @@ public:
   static Handle<Value> rotate(const Arguments &args) {
     REQ_DOUBLE_ARG(0, degrees)
     IMAGE_METHOD(RotateImage, degrees)
+  }
+
+  static Handle<Value> quality(const Arguments &args) {
+    HandleScope scope;
+    REQ_DOUBLE_ARG(0, quality)
+    MagickImage *image = ObjectWrap::Unwrap<MagickImage>(args.This());
+    image->_quality = quality;
+    return Undefined();
   }
 
   static Handle<Value> format(const Arguments &args) {
