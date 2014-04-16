@@ -258,10 +258,6 @@ public:
     return scope.Close(result);
   }
 
-  static Handle<Value> info(const Arguments &args) {
-
-  }
-
   /**
    * Create a new image from a buffer
    */
