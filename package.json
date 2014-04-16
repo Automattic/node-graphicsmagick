@@ -5,7 +5,7 @@
   "author": "Izaak Schroeder",
   "repository": {
     "type": "git",
-    "url": "git://github.com/LearnBoost/node-graphicsmagick.git"
+    "url": "git://github.com/Automattic/node-graphicsmagick.git"
   },
   "engine": "node >= 0.6.0"
 }
