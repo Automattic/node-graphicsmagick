@@ -2,7 +2,7 @@
   'targets': [
     {
       'target_name': 'GraphicsMagick',
-      'sources': [ 'GraphicsMagick.cc' ],
+      'sources': [ 'src/GraphicsMagick.cc' ],
       'libraries': [
         '<!@(GraphicsMagick-config --libs)'
       ],
