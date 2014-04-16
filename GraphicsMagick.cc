@@ -221,7 +221,7 @@ public:
     Image *img = *image;
     imageInfo->quality = image->_quality;
     strcpy(img->magick, image->_format);
-    img->orientation = UndefinedOrientation;
+    StripImage(img);
     void* data = ImageToBlob(imageInfo, *image, &length, &exception);
     if (data) {
       //http://sambro.is-super-awesome.com/2011/03/03/creating-a-proper-buffer-in-a-node-c-addon/
