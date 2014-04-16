@@ -1,11 +1,11 @@
 {
-	"name": "graphicsmagick2",
-	"description": "Bindings to the graphicsmagick library.",
-	"version": "0.1.2",
-	"author": "Izaak Schroeder",
-	"repository": {
-		"type": "git",
-		"url": "git://github.com/LearnBoost/node-graphicsmagick.git"
-	},
-	"engine": "node >= 0.6.0"
+  "name": "graphicsmagick2",
+  "description": "Bindings to the graphicsmagick library.",
+  "version": "0.1.2",
+  "author": "Izaak Schroeder",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/LearnBoost/node-graphicsmagick.git"
+  },
+  "engine": "node >= 0.6.0"
 }
