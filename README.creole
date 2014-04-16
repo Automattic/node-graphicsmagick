@@ -1,7 +1,0 @@
-= Graphics Magick =
-
-{{{
-	npm install graphicsmagick
-}}}
-
-This package contains Graphics Magick bindings for node.js.
