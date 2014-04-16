@@ -1,4 +1,14 @@
 
+0.2.0 / 2014-04-16
+==================
+
+  * package: add a "main" entry point
+  * .gitignore: ignore `node_modules` dir
+  * *: remove executable permissions on regular files
+  * package: update "repository" field
+  * wscript: remove wscript file
+  * package: beautify package.json file
+
 0.1.2 / 2013-09-16
 ==================
 
