@@ -1,4 +1,11 @@
 
+0.2.1 / 2014-04-16
+==================
+
+  * package: remove the period in the "description"
+  * README: move Readme to Markdown format
+  * GraphicsMagick: fix compilation warnings
+
 0.2.0 / 2014-04-16
 ==================
 
