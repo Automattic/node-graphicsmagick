@@ -271,8 +271,8 @@ public:
 
     Handle<Value> result;
     ExceptionInfo exception;
-    const char* blob;
-    size_t length;
+    const char* blob = NULL;
+    size_t length = 0;
     Image* image;
     ImageInfo *imageInfo = CloneImageInfo(NULL);
 
@@ -283,7 +283,7 @@ public:
       length = string.length();
       blob = *string;
     } else if (Buffer::HasInstance(args[0])) {
-      Local<Object> bufferIn=args[0]->ToObject();
+      Local<Object> bufferIn = args[0]->ToObject();
       length = Buffer::Length(bufferIn);
       blob = Buffer::Data(bufferIn);
     }
