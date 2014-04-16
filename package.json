@@ -7,5 +7,9 @@
     "type": "git",
     "url": "git://github.com/Automattic/node-graphicsmagick.git"
   },
-  "engine": "node >= 0.6.0"
+  "main": "index.js",
+  "engine": "node >= 0.6.0",
+  "dependencies": {
+    "bindings": "1.2.0"
+  }
 }
