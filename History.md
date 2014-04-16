@@ -1,4 +1,11 @@
 
+0.1.2 / 2013-09-16
+==================
+
+  * History: fix whitespace
+  * test: use process.stdout.write()
+  * GraphicsMagick: use StripImage()
+
 0.1.1 / 2013-09-11
 ==================
 
