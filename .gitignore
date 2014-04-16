@@ -1,10 +1,12 @@
 # Ignore the binaries folder
-build
-# Ignore wscript lock
-.lock-wscript
-# Test output image
-output.jpg
-# Windows image preview
-Thumbs.db
+/build
 
-sample.jpg
+# Test output image
+/output.jpg
+/sample.jpg
+
+# Windows image preview
+/Thumbs.db
+
+# root-level node modules dir
+/node_modules
