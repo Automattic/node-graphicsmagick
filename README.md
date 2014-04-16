@@ -1,5 +1,5 @@
-get-uri
-=======
+node-graphicsmagick
+===================
 ### Bindings to the graphicsmagick library
 
 This package contains Graphics Magick bindings for Node.js.
@@ -11,7 +11,7 @@ Installation
 Install with `npm`:
 
 ``` bash
-$ npm install get-uri
+$ npm install graphicsmagick2
 ```
 
 License
