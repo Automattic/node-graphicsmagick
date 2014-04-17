@@ -1,4 +1,10 @@
 
+0.2.3 / 2014-04-16
+==================
+
+  * src: comment out unused `s` variable
+  * test: simplify require call
+
 0.2.2 / 2014-04-16
 ==================
 
