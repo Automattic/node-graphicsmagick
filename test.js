@@ -1,4 +1,4 @@
-var gm = require('./build/Release/GraphicsMagick');
+var gm = require('./');
 var fs = require('fs');
 
 var buf = fs.readFileSync('test.jpg');
