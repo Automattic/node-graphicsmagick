@@ -397,7 +397,7 @@ public:
 
   //http://www.graphicsmagick.org/api/enhance.html#contrastimage
   static Handle<Value> contrast(const Arguments &args) {
-    REQ_INT_ARG(0, s)
+    //REQ_INT_ARG(0, s)
     //IMAGE_METHOD(ContrastImage, s)
     return Undefined();
   }
