@@ -6,6 +6,9 @@
       'libraries': [
         '<!@(GraphicsMagick-config --libs)'
       ],
+      'ldflags': [
+        '<!@(GraphicsMagick-config --ldflags)'
+      ],
       'conditions': [
         ['OS=="mac"', {
           # cflags on OS X are stupid and have to be defined like this
