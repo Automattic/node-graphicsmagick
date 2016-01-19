@@ -3,6 +3,9 @@
     {
       'target_name': 'GraphicsMagick',
       'sources': [ 'src/GraphicsMagick.cc' ],
+      'include_dirs': [
+        '<!(node -e "require(\'nan\')")'
+      ],
       'libraries': [
         '<!@(GraphicsMagick-config --libs)'
       ],

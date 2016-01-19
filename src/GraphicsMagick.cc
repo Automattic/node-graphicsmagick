@@ -1,134 +1,103 @@
-
 #include <cstring>
 
 #include <v8.h>
-
 #include <node.h>
 #include <node_buffer.h>
+#include <nan.h>
 
 #include <magick/api.h>
 
-#define THROW_ERROR(TYPE, STR)                                          \
-  return ThrowException(Exception::TYPE(String::New(STR)));
-
 #define REQ_ARGS(N)                                                     \
-  if (args.Length() < (N))                                              \
-    return ThrowException(Exception::TypeError(                         \
-                             String::New("Expected " #N "arguments")));
+  if (info.Length() < (N))                                              \
+    return Nan::ThrowTypeError(("Expected " #N "arguments"));
 
 #define REQ_STR_ARG(I, VAR)                                             \
-  if (args.Length() <= (I) || !args[I]->IsString())                     \
-    return ThrowException(Exception::TypeError(                         \
-                  String::New("Argument " #I " must be a string")));    \
-  String::Utf8Value VAR(args[I]->ToString());
+  if (info.Length() <= (I) || !info[I]->IsString())                     \
+    return Nan::ThrowTypeError(("Argument " #I " must be a string"));   \
+  Nan::Utf8String VAR(info[I]->ToString());
 
 #define REQ_INT_ARG(I, VAR)                                             \
   int VAR;                                                              \
-  if (args.Length() <= (I) || !args[I]->IsInt32())                      \
-    return ThrowException(Exception::TypeError(                         \
-                  String::New("Argument " #I " must be an integer")));  \
-  VAR = args[I]->Int32Value();
-
+  if (info.Length() <= (I) || !info[I]->IsInt32())                      \
+    return Nan::ThrowTypeError(("Argument " #I " must be an integer")); \
+  VAR = Nan::To<int32_t>(info[I]).FromJust();
 
 #define REQ_IMG_ARG(I, VAR) \
-if (args.Length() <= (I) || !args[I]->IsObject())                     \
-    return ThrowException(Exception::TypeError(                         \
-                  String::New("Argument " #I " must be an object")));   \
-  Local<Object> _obj_ = Local<Object>::Cast(args[I]);                   \
-  MagickImage *VAR = ObjectWrap::Unwrap<MagickImage>(_obj_);
-
-#define OPT_INT_ARG(I, VAR, DEFAULT)                                    \
-  int VAR;                                                              \
-  if (args.Length() <= (I)) {                                           \
-    VAR = (DEFAULT);                                                    \
-  } else if (args[I]->IsInt32()) {                                      \
-    VAR = args[I]->Int32Value();                                        \
-  } else {                                                              \
-    return ThrowException(Exception::TypeError(                         \
-              String::New("Argument " #I " must be an integer"))); \
-  }
-
+  if (info.Length() <= (I) || !info[I]->IsObject())                    \
+    return Nan::ThrowTypeError(("Argument " #I " must be an object")); \
+  Handle<Object> _obj_ = Handle<Object>::Cast(info[I]);                \
+  MagickImage *VAR = Nan::ObjectWrap::Unwrap<MagickImage>(_obj_);
 
 #define REQ_RECT_ARG(I, VAR)                                            \
-  REQ_INT_ARG(I+0, x)                       \
-  REQ_INT_ARG(I+1, y)                     \
-  REQ_INT_ARG(I+2, width)                         \
-  REQ_INT_ARG(I+3, height)                          \
-  RectangleInfo VAR = { width, height, x, y };
+  REQ_INT_ARG(I+0, x)                                                   \
+  REQ_INT_ARG(I+1, y)                                                   \
+  REQ_INT_ARG(I+2, width)                                               \
+  REQ_INT_ARG(I+3, height)                                              \
+  RectangleInfo VAR = {                                                 \
+    static_cast<unsigned long>(width),                                  \
+    static_cast<unsigned long>(height),                                 \
+    static_cast<long>(x),                                               \
+    static_cast<long>(x),                                               \
+  };
 
 #define REQ_DOUBLE_ARG(I, VAR)                                          \
   double VAR;                                                           \
-  if (args.Length() <= (I) || !args[I]->IsNumber())                     \
-    return ThrowException(Exception::TypeError(                         \
-                  String::New("Argument " #I " must be a number")));    \
-  VAR = args[I]->NumberValue();
+  if (info.Length() <= (I) || !info[I]->IsNumber())                     \
+    return Nan::ThrowTypeError(("Argument " #I " must be a number"));   \
+  VAR = Nan::To<int64_t>(info[I]).FromJust();
 
 #define REQ_EXT_ARG(I, VAR)                                             \
-  if (args.Length() <= (I) || !args[I]->IsExternal())                   \
-    return ThrowException(Exception::TypeError(                         \
-                  String::New("Argument " #I " invalid")));             \
-  Local<External> VAR = Local<External>::Cast(args[I]);
-
+  if (info.Length() <= (I) || !info[I]->IsExternal())                   \
+    return Nan::ThrowTypeError(("Argument " #I " invalid"));            \
+  Handle<External> VAR = Handle<External>::Cast(info[I]);
 
 #define OPT_INT_ARG(I, VAR, DEFAULT)                                    \
   int VAR;                                                              \
-  if (args.Length() <= (I)) {                                           \
+  if (info.Length() <= (I)) {                                           \
     VAR = (DEFAULT);                                                    \
-  } else if (args[I]->IsInt32()) {                                      \
-    VAR = args[I]->Int32Value();                                        \
+  } else if (info[I]->IsInt32()) {                                      \
+    VAR = Nan::To<int32_t>(info[I]).FromJust();                         \
   } else {                                                              \
-    return ThrowException(Exception::TypeError(                         \
-              String::New("Argument " #I " must be an integer")));    \
+    return Nan::ThrowTypeError(("Argument " #I " must be an integer")); \
   }
 
-#define OPT_DOUBLE_ARG(I, VAR, DEFAULT)                                    \
+#define OPT_DOUBLE_ARG(I, VAR, DEFAULT)                                 \
   int VAR;                                                              \
-  if (args.Length() <= (I)) {                                           \
+  if (info.Length() <= (I)) {                                           \
     VAR = (DEFAULT);                                                    \
-  } else if (args[I]->IsNumber()) {                                      \
-    VAR = args[I]->NumberValue();                                        \
+  } else if (info[I]->IsNumber()) {                                     \
+    VAR = Nan::To<int64_t>(info[I]).FromJust();                         \
   } else {                                                              \
-    return ThrowException(Exception::TypeError(                         \
-              String::New("Argument " #I " must be a number")));    \
+    return Nan::ThrowTypeError(("Argument " #I " must be a number"));   \
   }
 
 using namespace node;
+using namespace node::Buffer;
 using namespace v8;
-
-/*
-template <typename T> Handle<T> returnNewPointer(T ptr) {
-  HandleScope scope;
-  Local<Value> arg = External::New(ptr);
-  Persistent<Object> obj(T::Constructor->GetFunction()->NewInstance(1, &arg));
-  return scope.Close(obj);
-}
-*/
 
 
 #define IMAGE_METHOD(apiname, apiargs...) \
-    HandleScope scope; \
-    Handle<Value> out; \
+    Nan::HandleScope scope; \
     ExceptionInfo exception; \
     Image *result; \
-    MagickImage *image = ObjectWrap::Unwrap<MagickImage>(args.This()); \
+    MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This()); \
     GetExceptionInfo(&exception); \
     result = apiname( *image, ##apiargs, &exception ); \
     if (result) { \
-      Local<Object> object = constructorTemplate->GetFunction()->NewInstance(); \
-      MagickImage *magickImage = ObjectWrap::Unwrap<MagickImage>(object); \
+      Handle<Object> object = Nan::NewInstance(Nan::GetFunction(Nan::New<FunctionTemplate>(constructorTemplate)).ToLocalChecked()).ToLocalChecked(); \
+      MagickImage *magickImage = Nan::ObjectWrap::Unwrap<MagickImage>(object); \
       magickImage->image = result; \
-      out = scope.Close(object); \
+      info.GetReturnValue().Set(object); \
     } else { \
       CatchException(&exception); \
-      out = ThrowException(String::New("Unable to load image!")); \
+      return Nan::ThrowError("Unable to load image!"); \
     } \
-    DestroyExceptionInfo(&exception); \
-    return out;
+    DestroyExceptionInfo(&exception);
 
-class MagickImage : ObjectWrap {
+class MagickImage : public Nan::ObjectWrap {
 public:
 
-  static Persistent<FunctionTemplate> constructorTemplate;
+  static Nan::Persistent<FunctionTemplate> constructorTemplate;
 
   Image* image;
   char *_format;
@@ -137,7 +106,7 @@ public:
 
 
 
-  MagickImage(Image* i) : ObjectWrap(), image(i) {
+  MagickImage(Image* i) : Nan::ObjectWrap(), image(i) {
     _format = NULL;
     _quality = 90;
   }
@@ -152,70 +121,67 @@ public:
   }
 
 
-
-  static void Init(Handle<Object> target) {
-
-
-    Local<FunctionTemplate> t = FunctionTemplate::New(New);
+  static NAN_MODULE_INIT(Init) {
+    Handle<FunctionTemplate> t = Nan::New<FunctionTemplate>(New);
 
     //Create a new persistent function template based around "create"; this
     //template is used as the prototype for making new instances of the object
-    constructorTemplate = Persistent<FunctionTemplate>::New(t);
+    constructorTemplate.Reset(t);
 
     //This object has one internal field (i.e. a field hidden from javascript);
     //This field is used to store a pointer to the image class
-    constructorTemplate->InstanceTemplate()->SetInternalFieldCount(1);
+    t->InstanceTemplate()->SetInternalFieldCount(1);
 
     //Give the class a name
-    constructorTemplate->SetClassName(String::NewSymbol("Image"));
+    t->SetClassName(Nan::New<v8::String>("Image").ToLocalChecked());
 
     //All the methods for this class
-    NODE_SET_PROTOTYPE_METHOD(t, "thumbnail", thumbnail);
-    NODE_SET_PROTOTYPE_METHOD(t, "sample", sample);
-    NODE_SET_PROTOTYPE_METHOD(t, "scale", scale);
-    NODE_SET_PROTOTYPE_METHOD(t, "resize", resize);
-    NODE_SET_PROTOTYPE_METHOD(t, "chop", chop);
-    NODE_SET_PROTOTYPE_METHOD(t, "crop", crop);
-    NODE_SET_PROTOTYPE_METHOD(t, "extent", extent);
-    NODE_SET_PROTOTYPE_METHOD(t, "flip", flip);
-    NODE_SET_PROTOTYPE_METHOD(t, "flop", flop);
-    NODE_SET_PROTOTYPE_METHOD(t, "affineTransform", affineTransform);
-    NODE_SET_PROTOTYPE_METHOD(t, "rotate", rotate);
-    NODE_SET_PROTOTYPE_METHOD(t, "format", format);
-    NODE_SET_PROTOTYPE_METHOD(t, "quality", quality);
-    NODE_SET_PROTOTYPE_METHOD(t, "shear", shear);
-    NODE_SET_PROTOTYPE_METHOD(t, "contrast", contrast);
-    NODE_SET_PROTOTYPE_METHOD(t, "equalize", equalize);
-    NODE_SET_PROTOTYPE_METHOD(t, "gamma", gamma);
-    NODE_SET_PROTOTYPE_METHOD(t, "level", level);
-    NODE_SET_PROTOTYPE_METHOD(t, "levelChannel", levelChannel);
-    NODE_SET_PROTOTYPE_METHOD(t, "modulate", modulate);
-    NODE_SET_PROTOTYPE_METHOD(t, "negate", negate);
-    NODE_SET_PROTOTYPE_METHOD(t, "normalize", normalize);
-    NODE_SET_PROTOTYPE_METHOD(t, "attribute", attribute);
-    NODE_SET_PROTOTYPE_METHOD(t, "composite", composite);
+    Nan::SetPrototypeMethod(t, "thumbnail", thumbnail);
+    Nan::SetPrototypeMethod(t, "sample", sample);
+    Nan::SetPrototypeMethod(t, "scale", scale);
+    Nan::SetPrototypeMethod(t, "resize", resize);
+    Nan::SetPrototypeMethod(t, "chop", chop);
+    Nan::SetPrototypeMethod(t, "crop", crop);
+    Nan::SetPrototypeMethod(t, "extent", extent);
+    Nan::SetPrototypeMethod(t, "flip", flip);
+    Nan::SetPrototypeMethod(t, "flop", flop);
+    Nan::SetPrototypeMethod(t, "affineTransform", affineTransform);
+    Nan::SetPrototypeMethod(t, "rotate", rotate);
+    Nan::SetPrototypeMethod(t, "format", format);
+    Nan::SetPrototypeMethod(t, "quality", quality);
+    Nan::SetPrototypeMethod(t, "shear", shear);
+    Nan::SetPrototypeMethod(t, "contrast", contrast);
+    Nan::SetPrototypeMethod(t, "equalize", equalize);
+    Nan::SetPrototypeMethod(t, "gamma", gamma);
+    Nan::SetPrototypeMethod(t, "level", level);
+    Nan::SetPrototypeMethod(t, "levelChannel", levelChannel);
+    Nan::SetPrototypeMethod(t, "modulate", modulate);
+    Nan::SetPrototypeMethod(t, "negate", negate);
+    Nan::SetPrototypeMethod(t, "normalize", normalize);
+    Nan::SetPrototypeMethod(t, "attribute", attribute);
+    Nan::SetPrototypeMethod(t, "composite", composite);
 
     //Some getters
-    t->PrototypeTemplate()->SetAccessor(String::NewSymbol("buffer"), getBuffer, NULL, Handle<Value>(), PROHIBITS_OVERWRITING, ReadOnly);
-    t->PrototypeTemplate()->SetAccessor(String::NewSymbol("width"), getWidth, NULL, Handle<Value>(), PROHIBITS_OVERWRITING, ReadOnly);
-    t->PrototypeTemplate()->SetAccessor(String::NewSymbol("height"), getHeight, NULL, Handle<Value>(), PROHIBITS_OVERWRITING, ReadOnly);
+    Nan::SetAccessor(t->PrototypeTemplate(), Nan::New<v8::String>("buffer").ToLocalChecked(), getBuffer);
+    Nan::SetAccessor(t->PrototypeTemplate(), Nan::New<v8::String>("width").ToLocalChecked(), getWidth);
+    Nan::SetAccessor(t->PrototypeTemplate(), Nan::New<v8::String>("height").ToLocalChecked(), getHeight);
   }
 
-  static Handle<Value> New(const Arguments &args) {
-    HandleScope scope;
+  static NAN_METHOD(New) {
+    Nan::HandleScope scope;
     MagickImage* magickImage = new MagickImage(NULL);
-    magickImage->Wrap(args.This());
-    return args.This();
+    magickImage->Wrap(info.This());
+    info.GetReturnValue().Set(info.This());
   }
 
 
-  static Handle<Value> getBuffer (Local<String> property, const AccessorInfo& info)
-  {
-    HandleScope scope;
+  static void getBuffer(v8::Handle<v8::String> property,
+                              const Nan::PropertyCallbackInfo<v8::Value>& info) {
+    Nan::HandleScope scope;
     ExceptionInfo exception;
     size_t length;
     ImageInfo *imageInfo = CloneImageInfo(NULL);
-    MagickImage *image = ObjectWrap::Unwrap<MagickImage>(info.This());
+    MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
     GetExceptionInfo(&exception);
     strcpy(imageInfo->filename, "");
     Image *img = *image;
@@ -225,48 +191,42 @@ public:
     void* data = ImageToBlob(imageInfo, *image, &length, &exception);
     if (data) {
       //http://sambro.is-super-awesome.com/2011/03/03/creating-a-proper-buffer-in-a-node-c-addon/
-      Buffer *slowBuffer = Buffer::New(length);
-      memcpy(Buffer::Data(slowBuffer), data, length);
-      Local<Object> globalObj = Context::GetCurrent()->Global();
-      Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(String::New("Buffer")));
-      Handle<Value> constructorArgs[3] = { slowBuffer->handle_, Integer::New(length), Integer::New(0) };
-      Local<Object> buffer =  bufferConstructor->NewInstance(3, constructorArgs);
+      Handle<Object> buffer = Nan::NewBuffer(length).ToLocalChecked();
+      memcpy(Buffer::Data(buffer), data, length);
+      info.GetReturnValue().Set(buffer);
       free(data);
       DestroyImageInfo(imageInfo);
-      return scope.Close(buffer);
     } else {
       DestroyImageInfo(imageInfo);
-      return ThrowException(String::New("Unable to convert image to blob!"));
+      return Nan::ThrowError("Unable to convert image to blob!");
     }
-
-
   }
 
-  static Handle<Value> getWidth (Local<String> property, const AccessorInfo& info)
-  {
-    HandleScope scope;
-    MagickImage* image = ObjectWrap::Unwrap<MagickImage>(info.This());
-    Local<Number> result = Integer::New(image->image->columns);
-    return scope.Close(result);
+  static void getWidth(v8::Handle<v8::String> property,
+                              const Nan::PropertyCallbackInfo<v8::Value>& info) {
+    Nan::HandleScope scope;
+    MagickImage* image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
+    Handle<Number> result = Nan::New<Number>(image->image->columns);
+    info.GetReturnValue().Set(result);
   }
 
-  static Handle<Value> getHeight (Local<String> property, const AccessorInfo& info)
-  {
-    HandleScope scope;
-    MagickImage* image = ObjectWrap::Unwrap<MagickImage>(info.This());
-    Local<Number> result = Integer::New(image->image->rows);
-    return scope.Close(result);
+  static void getHeight(v8::Handle<v8::String> property,
+                              const Nan::PropertyCallbackInfo<v8::Value>& info) {
+    Nan::HandleScope scope;
+    MagickImage* image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
+    Handle<Number> result = Nan::New<Number>(image->image->rows);
+    info.GetReturnValue().Set(result);
   }
 
   /**
    * Create a new image from a buffer
    */
-  static Handle<Value> create(const Arguments &args) {
+  static void create(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+    Nan::HandleScope scope;
 
-    HandleScope scope;
-
-    if (args.Length() < 1) {
-      return Undefined();
+    if (info.Length() < 1) {
+      info.GetReturnValue().SetUndefined();
+      return;
     }
 
     Handle<Value> result;
@@ -278,12 +238,13 @@ public:
 
     GetExceptionInfo(&exception);
 
-    if (args[0]->IsString()) {
-      String::AsciiValue string(args[0]->ToString());
-      length = string.length();
-      blob = *string;
-    } else if (Buffer::HasInstance(args[0])) {
-      Local<Object> bufferIn = args[0]->ToObject();
+    if (info[0]->IsString()) {
+      return Nan::ThrowTypeError("binary string input is no longer supported");
+      //String::AsciiValue string(info[0]->ToString());
+      //length = string.length();
+      //blob = *string;
+    } else if (Buffer::HasInstance(info[0])) {
+      Handle<Object> bufferIn = info[0]->ToObject();
       length = Buffer::Length(bufferIn);
       blob = Buffer::Data(bufferIn);
     }
@@ -291,167 +252,165 @@ public:
     image = BlobToImage(imageInfo, blob, length, &exception);
     if (!image) {
        CatchException(&exception);
-       result = ThrowException(String::New("Unable to load image!"));
+       return Nan::ThrowError("Unable to load image!");
     }
     else {
-      Local<Object> object = constructorTemplate->GetFunction()->NewInstance();
-      MagickImage *magickImage = ObjectWrap::Unwrap<MagickImage>(object);
+      Handle<Object> object = Nan::NewInstance(Nan::GetFunction(Nan::New<FunctionTemplate>(constructorTemplate)).ToLocalChecked()).ToLocalChecked();
+      MagickImage *magickImage = Nan::ObjectWrap::Unwrap<MagickImage>(object);
       magickImage->image = image;
       magickImage->length = length;
-      result = scope.Close(object);
+      info.GetReturnValue().Set(object);
     }
 
     DestroyImageInfo(imageInfo);
     DestroyExceptionInfo(&exception);
-    return result;
   }
 
-  static Handle<Value> thumbnail(const Arguments &args) {
+  static void thumbnail(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_INT_ARG(0, width)
     REQ_INT_ARG(1, height)
     IMAGE_METHOD(ThumbnailImage, width, height)
   }
 
-  static Handle<Value> sample(const Arguments &args) {
+  static void sample(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_INT_ARG(0, width)
     REQ_INT_ARG(1, height)
     IMAGE_METHOD(SampleImage, width, height)
   }
 
-  static Handle<Value> scale(const Arguments &args) {
+  static void scale(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_INT_ARG(0, width)
     REQ_INT_ARG(1, height)
     IMAGE_METHOD(ScaleImage, width, height)
   }
 
-  static Handle<Value> resize(const Arguments &args) {
+  static void resize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_INT_ARG(0, width)
     REQ_INT_ARG(1, height)
     OPT_INT_ARG(2, f, LanczosFilter)
     OPT_DOUBLE_ARG(3, blur, 1.0)
     FilterTypes filter = FilterTypes(f);
     IMAGE_METHOD(ResizeImage, width, height, filter, blur)
-
   }
 
   //http://www.graphicsmagick.org/api/transform.html#chopimage
-  static Handle<Value> chop(const Arguments &args) {
+  static void chop(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_RECT_ARG(0, chopInfo)
     IMAGE_METHOD(ChopImage, &chopInfo)
   }
 
   //http://www.graphicsmagick.org/api/transform.html#cropimage
-  static Handle<Value> crop(const Arguments &args) {
+  static void crop(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_RECT_ARG(0, cropInfo)
     IMAGE_METHOD(CropImage, &cropInfo)
   }
 
   //http://www.graphicsmagick.org/api/transform.html#extentimage
-  static Handle<Value> extent(const Arguments &args) {
+  static void extent(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_RECT_ARG(0, geometry)
     IMAGE_METHOD(ExtentImage, &geometry)
   }
 
-  static Handle<Value> flip(const Arguments &args) {
+  static void flip(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     IMAGE_METHOD(FlipImage)
   }
 
-  static Handle<Value> flop(const Arguments &args) {
+  static void flop(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     IMAGE_METHOD(FlopImage)
   }
 
   //http://www.graphicsmagick.org/api/shear.html#affinetransformimage
-  static Handle<Value> affineTransform(const Arguments &args) {
+  static void affineTransform(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     AffineMatrix affineMatrix;
     IMAGE_METHOD(AffineTransformImage, &affineMatrix)
   }
 
   //http://www.graphicsmagick.org/api/shear.html#rotateimage
-  static Handle<Value> rotate(const Arguments &args) {
+  static void rotate(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_DOUBLE_ARG(0, degrees)
     IMAGE_METHOD(RotateImage, degrees)
   }
 
-  static Handle<Value> quality(const Arguments &args) {
-    HandleScope scope;
+  static void quality(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+    Nan::HandleScope scope;
     REQ_DOUBLE_ARG(0, quality)
-    MagickImage *image = ObjectWrap::Unwrap<MagickImage>(args.This());
+    MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
     image->_quality = quality;
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
-  static Handle<Value> format(const Arguments &args) {
-    HandleScope scope;
+  static void format(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+    Nan::HandleScope scope;
     REQ_STR_ARG(0, format)
-    MagickImage *image = ObjectWrap::Unwrap<MagickImage>(args.This());
+    MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
     image->_format = strdup(*format);
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
   //http://www.graphicsmagick.org/api/shear.html#shearimage
-  static Handle<Value> shear(const Arguments &args) {
+  static void shear(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     REQ_DOUBLE_ARG(0, x)
     REQ_DOUBLE_ARG(1, y)
     IMAGE_METHOD(ShearImage, x, y)
   }
 
   //http://www.graphicsmagick.org/api/enhance.html#contrastimage
-  static Handle<Value> contrast(const Arguments &args) {
+  static void contrast(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     //REQ_INT_ARG(0, s)
     //IMAGE_METHOD(ContrastImage, s)
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
   //http://www.graphicsmagick.org/api/enhance.html#equalizeimage
-  static Handle<Value> equalize(const Arguments &args) {
+  static void equalize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     //IMAGE_METHOD(EqualizeImage)
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
-  static Handle<Value> gamma(const Arguments &args) {
+  static void gamma(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     //IMAGE_METHOD(GammaImage)
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
-  static Handle<Value> level(const Arguments &args) {
+  static void level(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     //IMAGE_METHOD(LevelImage)
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
-  static Handle<Value> levelChannel(const Arguments &args) {
+  static void levelChannel(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     //IMAGE_METHOD(LevelImageChannel)
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
-  static Handle<Value> modulate(const Arguments &args) {
+  static void modulate(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     //IMAGE_METHOD(ModulateImage)
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
-  static Handle<Value> negate(const Arguments &args) {
+  static void negate(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     //IMAGE_METHOD(NegateImage)
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
-  static Handle<Value> normalize(const Arguments &args) {
+  static void normalize(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     //IMAGE_METHOD(NormalizeImage)
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
   //http://www.graphicsmagick.org/api/attribute.html#getimageattribute
   //http://www.graphicsmagick.org/api/attribute.html#setimageattribute
-  static Handle<Value> attribute(const Arguments &args) {
-    //MagickImage *image = ObjectWrap::Unwrap<MagickImage>(args.This());
+  static void attribute(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+    //MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
     //ExceptionInfo exception;
-    return Undefined();
+    info.GetReturnValue().SetUndefined();
   }
 
   //http://www.graphicsmagick.org/api/composite.html
-  static Handle<Value> composite(const Arguments &args) {
-    HandleScope scope;
+  static void composite(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+    Nan::HandleScope scope;
     Handle<Value> out;
     CompositeOperator compose;
-    MagickImage *image = ObjectWrap::Unwrap<MagickImage>(args.This());
+    MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
     REQ_IMG_ARG(0, i)
     REQ_INT_ARG(1, c)
     OPT_INT_ARG(2, x, 0)
@@ -459,82 +418,77 @@ public:
     const Image* compositeImage = *i;
     compose = CompositeOperator(c);
     if (CompositeImage( *image, compose, compositeImage, x, y ) == MagickPass)
-      return args.This();
+      info.GetReturnValue().Set(info.This());
     else
-      return ThrowException(String::New("Unable to composite image!"));
-
+      return Nan::ThrowError("Unable to composite image!");
   }
 
 };
 
-Persistent<FunctionTemplate> MagickImage::constructorTemplate;
+Nan::Persistent<FunctionTemplate> MagickImage::constructorTemplate;
 
-extern "C" {
-  static void init (Handle<Object> target)
-  {
-    InitializeMagick(NULL);
+NAN_MODULE_INIT(init) {
+  Nan::HandleScope scope;
+  InitializeMagick(NULL);
 
+  //http://www.graphicsmagick.org/api/types.html#filtertypes
+  NODE_DEFINE_CONSTANT(target, UndefinedFilter);
+  NODE_DEFINE_CONSTANT(target, PointFilter);
+  NODE_DEFINE_CONSTANT(target, BoxFilter);
+  NODE_DEFINE_CONSTANT(target, TriangleFilter);
+  NODE_DEFINE_CONSTANT(target, HermiteFilter);
+  NODE_DEFINE_CONSTANT(target, HanningFilter);
+  NODE_DEFINE_CONSTANT(target, HammingFilter);
+  NODE_DEFINE_CONSTANT(target, BlackmanFilter);
+  NODE_DEFINE_CONSTANT(target, GaussianFilter);
+  NODE_DEFINE_CONSTANT(target, QuadraticFilter);
+  NODE_DEFINE_CONSTANT(target, CubicFilter);
+  NODE_DEFINE_CONSTANT(target, CatromFilter);
+  NODE_DEFINE_CONSTANT(target, MitchellFilter);
+  NODE_DEFINE_CONSTANT(target, LanczosFilter);
+  NODE_DEFINE_CONSTANT(target, BesselFilter);
+  NODE_DEFINE_CONSTANT(target, SincFilter);
 
-    //http://www.graphicsmagick.org/api/types.html#filtertypes
-    NODE_DEFINE_CONSTANT(target, UndefinedFilter);
-    NODE_DEFINE_CONSTANT(target, PointFilter);
-    NODE_DEFINE_CONSTANT(target, BoxFilter);
-    NODE_DEFINE_CONSTANT(target, TriangleFilter);
-    NODE_DEFINE_CONSTANT(target, HermiteFilter);
-    NODE_DEFINE_CONSTANT(target, HanningFilter);
-    NODE_DEFINE_CONSTANT(target, HammingFilter);
-    NODE_DEFINE_CONSTANT(target, BlackmanFilter);
-    NODE_DEFINE_CONSTANT(target, GaussianFilter);
-    NODE_DEFINE_CONSTANT(target, QuadraticFilter);
-    NODE_DEFINE_CONSTANT(target, CubicFilter);
-    NODE_DEFINE_CONSTANT(target, CatromFilter);
-    NODE_DEFINE_CONSTANT(target, MitchellFilter);
-    NODE_DEFINE_CONSTANT(target, LanczosFilter);
-    NODE_DEFINE_CONSTANT(target, BesselFilter);
-    NODE_DEFINE_CONSTANT(target, SincFilter);
+  //http://www.graphicsmagick.org/api/types.html#compositeoperator
+  NODE_DEFINE_CONSTANT(target, UndefinedCompositeOp);
+  NODE_DEFINE_CONSTANT(target, OverCompositeOp);
+  NODE_DEFINE_CONSTANT(target, InCompositeOp);
+  NODE_DEFINE_CONSTANT(target, OutCompositeOp);
+  NODE_DEFINE_CONSTANT(target, AtopCompositeOp);
+  NODE_DEFINE_CONSTANT(target, XorCompositeOp);
+  NODE_DEFINE_CONSTANT(target, PlusCompositeOp);
+  NODE_DEFINE_CONSTANT(target, MinusCompositeOp);
+  NODE_DEFINE_CONSTANT(target, AddCompositeOp);
+  NODE_DEFINE_CONSTANT(target, SubtractCompositeOp);
+  NODE_DEFINE_CONSTANT(target, DifferenceCompositeOp);
+  NODE_DEFINE_CONSTANT(target, BumpmapCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyRedCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyGreenCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyBlueCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyOpacityCompositeOp);
+  NODE_DEFINE_CONSTANT(target, ClearCompositeOp);
+  NODE_DEFINE_CONSTANT(target, DissolveCompositeOp);
+  NODE_DEFINE_CONSTANT(target, DisplaceCompositeOp);
+  NODE_DEFINE_CONSTANT(target, ModulateCompositeOp);
+  NODE_DEFINE_CONSTANT(target, ThresholdCompositeOp);
+  NODE_DEFINE_CONSTANT(target, NoCompositeOp);
+  NODE_DEFINE_CONSTANT(target, DarkenCompositeOp);
+  NODE_DEFINE_CONSTANT(target, LightenCompositeOp);
+  NODE_DEFINE_CONSTANT(target, HueCompositeOp);
+  NODE_DEFINE_CONSTANT(target, SaturateCompositeOp);
+  NODE_DEFINE_CONSTANT(target, ColorizeCompositeOp);
+  NODE_DEFINE_CONSTANT(target, LuminizeCompositeOp);
+  NODE_DEFINE_CONSTANT(target, ScreenCompositeOp);
+  NODE_DEFINE_CONSTANT(target, OverlayCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyCyanCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyMagentaCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyYellowCompositeOp);
+  NODE_DEFINE_CONSTANT(target, CopyBlackCompositeOp);
+  NODE_DEFINE_CONSTANT(target, DivideCompositeOp);
 
-    //http://www.graphicsmagick.org/api/types.html#compositeoperator
-    NODE_DEFINE_CONSTANT(target, UndefinedCompositeOp);
-    NODE_DEFINE_CONSTANT(target, OverCompositeOp);
-    NODE_DEFINE_CONSTANT(target, InCompositeOp);
-    NODE_DEFINE_CONSTANT(target, OutCompositeOp);
-    NODE_DEFINE_CONSTANT(target, AtopCompositeOp);
-    NODE_DEFINE_CONSTANT(target, XorCompositeOp);
-    NODE_DEFINE_CONSTANT(target, PlusCompositeOp);
-    NODE_DEFINE_CONSTANT(target, MinusCompositeOp);
-    NODE_DEFINE_CONSTANT(target, AddCompositeOp);
-    NODE_DEFINE_CONSTANT(target, SubtractCompositeOp);
-    NODE_DEFINE_CONSTANT(target, DifferenceCompositeOp);
-    NODE_DEFINE_CONSTANT(target, BumpmapCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyRedCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyGreenCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyBlueCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyOpacityCompositeOp);
-    NODE_DEFINE_CONSTANT(target, ClearCompositeOp);
-    NODE_DEFINE_CONSTANT(target, DissolveCompositeOp);
-    NODE_DEFINE_CONSTANT(target, DisplaceCompositeOp);
-    NODE_DEFINE_CONSTANT(target, ModulateCompositeOp);
-    NODE_DEFINE_CONSTANT(target, ThresholdCompositeOp);
-    NODE_DEFINE_CONSTANT(target, NoCompositeOp);
-    NODE_DEFINE_CONSTANT(target, DarkenCompositeOp);
-    NODE_DEFINE_CONSTANT(target, LightenCompositeOp);
-    NODE_DEFINE_CONSTANT(target, HueCompositeOp);
-    NODE_DEFINE_CONSTANT(target, SaturateCompositeOp);
-    NODE_DEFINE_CONSTANT(target, ColorizeCompositeOp);
-    NODE_DEFINE_CONSTANT(target, LuminizeCompositeOp);
-    NODE_DEFINE_CONSTANT(target, ScreenCompositeOp);
-    NODE_DEFINE_CONSTANT(target, OverlayCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyCyanCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyMagentaCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyYellowCompositeOp);
-    NODE_DEFINE_CONSTANT(target, CopyBlackCompositeOp);
-    NODE_DEFINE_CONSTANT(target, DivideCompositeOp);
+  Nan::SetMethod(target, "image", MagickImage::create);
 
-    NODE_SET_METHOD(target, "image", MagickImage::create);
-
-    MagickImage::Init(target);
-  }
-
-  NODE_MODULE(GraphicsMagick, init)
+  MagickImage::Init(target);
 }
+NODE_MODULE(GraphicsMagick, init);
