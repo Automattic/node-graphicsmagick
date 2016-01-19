@@ -1,4 +1,13 @@
 
+0.2.4 / 2016-01-19
+==================
+
+  * package: add MIT "license" field
+  * add .travis.yml file
+  * add mocha "npm test" command
+  * refactor to use "nan" (add Node v4/v5/io.js support)
+  * package: add @tootallnate to "contributors" array
+
 0.2.3 / 2014-04-16
 ==================
 
