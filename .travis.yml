@@ -10,6 +10,7 @@ addons:
       - g++-4.8
       - graphicsmagick
       - libgraphicsmagick1-dev
+      - libgraphicsmagick3
 
 language: node_js
 
@@ -34,5 +35,6 @@ script:
   # Output useful info for debugging
   - node --version
   - npm --version
+  - GraphicsMagick-config --version
   # Run tests
   - npm test
