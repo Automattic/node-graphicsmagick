@@ -7,9 +7,7 @@
         '<!(node -e "require(\'nan\')")'
       ],
       'libraries': [
-        '<!@(GraphicsMagick-config --libs)'
-      ],
-      'ldflags': [
+        '<!@(GraphicsMagick-config --libs)',
         '<!@(GraphicsMagick-config --ldflags)'
       ],
       'conditions': [
