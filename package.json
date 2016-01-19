@@ -2,6 +2,7 @@
   "name": "graphicsmagick2",
   "description": "Bindings to the graphicsmagick library",
   "version": "0.2.3",
+  "license": "MIT",
   "author": "Izaak Schroeder",
   "contributors": [
     "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io)"
