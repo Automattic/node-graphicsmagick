@@ -25,7 +25,7 @@
 #define REQ_IMG_ARG(I, VAR) \
   if (info.Length() <= (I) || !info[I]->IsObject())                    \
     return Nan::ThrowTypeError(("Argument " #I " must be an object")); \
-  Handle<Object> _obj_ = Handle<Object>::Cast(info[I]);                \
+  v8::Local<Object> _obj_ = v8::Local<Object>::Cast(info[I]);                \
   MagickImage *VAR = Nan::ObjectWrap::Unwrap<MagickImage>(_obj_);
 
 #define REQ_RECT_ARG(I, VAR)                                            \
@@ -49,7 +49,7 @@
 #define REQ_EXT_ARG(I, VAR)                                             \
   if (info.Length() <= (I) || !info[I]->IsExternal())                   \
     return Nan::ThrowTypeError(("Argument " #I " invalid"));            \
-  Handle<External> VAR = Handle<External>::Cast(info[I]);
+  v8::Local<External> VAR = v8::Local<External>::Cast(info[I]);
 
 #define OPT_INT_ARG(I, VAR, DEFAULT)                                    \
   int VAR;                                                              \
@@ -72,7 +72,6 @@
   }
 
 using namespace node;
-using namespace node::Buffer;
 using namespace v8;
 
 
@@ -84,7 +83,7 @@ using namespace v8;
     GetExceptionInfo(&exception); \
     result = apiname( *image, ##apiargs, &exception ); \
     if (result) { \
-      Handle<Object> object = Nan::NewInstance(Nan::GetFunction(Nan::New<FunctionTemplate>(constructorTemplate)).ToLocalChecked()).ToLocalChecked(); \
+      v8::Local<Object> object = Nan::NewInstance(Nan::GetFunction(Nan::New<FunctionTemplate>(constructorTemplate)).ToLocalChecked()).ToLocalChecked(); \
       MagickImage *magickImage = Nan::ObjectWrap::Unwrap<MagickImage>(object); \
       magickImage->image = result; \
       info.GetReturnValue().Set(object); \
@@ -122,7 +121,7 @@ public:
 
 
   static NAN_MODULE_INIT(Init) {
-    Handle<FunctionTemplate> t = Nan::New<FunctionTemplate>(New);
+    v8::Local<FunctionTemplate> t = Nan::New<FunctionTemplate>(New);
 
     //Create a new persistent function template based around "create"; this
     //template is used as the prototype for making new instances of the object
@@ -175,7 +174,7 @@ public:
   }
 
 
-  static void getBuffer(v8::Handle<v8::String> property,
+  static void getBuffer(v8::Local<v8::String> property,
                               const Nan::PropertyCallbackInfo<v8::Value>& info) {
     Nan::HandleScope scope;
     ExceptionInfo exception;
@@ -191,7 +190,7 @@ public:
     void* data = ImageToBlob(imageInfo, *image, &length, &exception);
     if (data) {
       //http://sambro.is-super-awesome.com/2011/03/03/creating-a-proper-buffer-in-a-node-c-addon/
-      Handle<Object> buffer = Nan::NewBuffer(length).ToLocalChecked();
+      v8::Local<Object> buffer = Nan::NewBuffer(length).ToLocalChecked();
       memcpy(Buffer::Data(buffer), data, length);
       info.GetReturnValue().Set(buffer);
       free(data);
@@ -202,19 +201,19 @@ public:
     }
   }
 
-  static void getWidth(v8::Handle<v8::String> property,
+  static void getWidth(v8::Local<v8::String> property,
                               const Nan::PropertyCallbackInfo<v8::Value>& info) {
     Nan::HandleScope scope;
     MagickImage* image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
-    Handle<Number> result = Nan::New<Number>(image->image->columns);
+    v8::Local<Number> result = Nan::New<Number>(image->image->columns);
     info.GetReturnValue().Set(result);
   }
 
-  static void getHeight(v8::Handle<v8::String> property,
+  static void getHeight(v8::Local<v8::String> property,
                               const Nan::PropertyCallbackInfo<v8::Value>& info) {
     Nan::HandleScope scope;
     MagickImage* image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
-    Handle<Number> result = Nan::New<Number>(image->image->rows);
+    v8::Local<Number> result = Nan::New<Number>(image->image->rows);
     info.GetReturnValue().Set(result);
   }
 
@@ -229,7 +228,7 @@ public:
       return;
     }
 
-    Handle<Value> result;
+    v8::Local<Value> result;
     ExceptionInfo exception;
     const char* blob = NULL;
     size_t length = 0;
@@ -244,7 +243,7 @@ public:
       //length = string.length();
       //blob = *string;
     } else if (Buffer::HasInstance(info[0])) {
-      Handle<Object> bufferIn = info[0]->ToObject();
+      v8::Local<Object> bufferIn = info[0]->ToObject();
       length = Buffer::Length(bufferIn);
       blob = Buffer::Data(bufferIn);
     }
@@ -255,7 +254,7 @@ public:
        return Nan::ThrowError("Unable to load image!");
     }
     else {
-      Handle<Object> object = Nan::NewInstance(Nan::GetFunction(Nan::New<FunctionTemplate>(constructorTemplate)).ToLocalChecked()).ToLocalChecked();
+      v8::Local<Object> object = Nan::NewInstance(Nan::GetFunction(Nan::New<FunctionTemplate>(constructorTemplate)).ToLocalChecked()).ToLocalChecked();
       MagickImage *magickImage = Nan::ObjectWrap::Unwrap<MagickImage>(object);
       magickImage->image = image;
       magickImage->length = length;
@@ -408,7 +407,7 @@ public:
   //http://www.graphicsmagick.org/api/composite.html
   static void composite(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     Nan::HandleScope scope;
-    Handle<Value> out;
+    v8::Local<Value> out;
     CompositeOperator compose;
     MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
     REQ_IMG_ARG(0, i)
