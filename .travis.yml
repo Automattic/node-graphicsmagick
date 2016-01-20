@@ -22,13 +22,13 @@ node_js:
   - "5"
 
 install:
-  - GraphicsMagick-config --version
-  - GraphicsMagick-config --cppflags --cflags --ldflags --libs
   - curl "https://cldup.com/RcAmsl9T2Q.gz" > "GraphicsMagick-1.3.20.tar.gz"
   - tar xzvf "GraphicsMagick-1.3.20.tar.gz"
   - cd GraphicsMagick-1.3.20 && ./configure --prefix=$HOME && make install
   - LIBRARY_PATH="$HOME/lib"
   - PATH="`npm bin`:`npm bin -g`:$HOME/bin:$PATH"
+  - GraphicsMagick-config --version
+  - GraphicsMagick-config --cppflags --cflags --ldflags --libs
   # Node 0.8 comes with a too obsolete npm
   - if [[ "`node --version`" =~ ^v0\.8\. ]]; then npm install -g npm@1.4.28 ; fi
   # Install dependencies and build
