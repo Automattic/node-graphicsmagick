@@ -24,7 +24,7 @@ node_js:
 install:
   - curl "https://cldup.com/RcAmsl9T2Q.gz" > "GraphicsMagick-1.3.20.tar.gz"
   - tar xzvf "GraphicsMagick-1.3.20.tar.gz"
-  - pushd GraphicsMagick-1.3.20 && ./configure --prefix=$HOME --with-pic --enable-shared --disable-static && make install
+  - pushd GraphicsMagick-1.3.20 && ./configure --prefix=$HOME --with-pic --enable-static --disable-shared && make install
   - LIBRARY_PATH="$HOME/lib"
   - PATH="`npm bin`:`npm bin -g`:$HOME/bin:$PATH"
   - GraphicsMagick-config --version
@@ -43,6 +43,5 @@ script:
   - ldd build/Release/GraphicsMagick.node
   - GraphicsMagick-config --version
   - printenv
-  - LD_LIBRARY_PATH="$HOME/lib"
   # Run tests
   - npm test
