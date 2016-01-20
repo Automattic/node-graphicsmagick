@@ -24,7 +24,7 @@ node_js:
 install:
   - curl "https://cldup.com/RcAmsl9T2Q.gz" > "GraphicsMagick-1.3.20.tar.gz"
   - tar xzvf "GraphicsMagick-1.3.20.tar.gz"
-  - cd GraphicsMagick-1.3.20 && ./configure --prefix=$HOME && make install
+  - cd GraphicsMagick-1.3.20 && ./configure --prefix=$HOME --with-pic --enable-shared --disable-static && make install
   - LIBRARY_PATH="$HOME/lib"
   - PATH="`npm bin`:`npm bin -g`:$HOME/bin:$PATH"
   - GraphicsMagick-config --version
