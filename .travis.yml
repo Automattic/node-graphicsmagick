@@ -28,7 +28,6 @@ install:
   - LIBRARY_PATH="$HOME/lib"
   - PATH="`npm bin`:`npm bin -g`:$HOME/bin:$PATH"
   - GraphicsMagick-config --version
-  - GraphicsMagick-config --cppflags --cflags --ldflags --libs
   - popd
   - ls -l "$LIBRARY_PATH"
   # Node 0.8 comes with a too obsolete npm
@@ -40,8 +39,5 @@ script:
   # Output useful info for debugging
   - node --version
   - npm --version
-  - ldd build/Release/GraphicsMagick.node
-  - GraphicsMagick-config --version
-  - printenv
   # Run tests
   - npm test
