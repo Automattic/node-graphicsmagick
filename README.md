@@ -1,6 +1,7 @@
 node-graphicsmagick
 ===================
 ### Bindings to the graphicsmagick library
+[![Build Status](https://travis-ci.org/Automattic/node-graphicsmagick.svg?branch=master)](https://travis-ci.org/Automattic/node-graphicsmagick)
 
 This package contains Graphics Magick bindings for Node.js.
 
