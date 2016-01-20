@@ -1,7 +1,7 @@
 sudo: false
 
 env:
-  - CXX=g++-4.8 V=1
+  - CXX=g++-4.8
 addons:
   apt:
     sources:
