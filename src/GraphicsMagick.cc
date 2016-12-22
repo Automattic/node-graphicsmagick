@@ -37,7 +37,7 @@
     static_cast<unsigned long>(width),                                  \
     static_cast<unsigned long>(height),                                 \
     static_cast<long>(x),                                               \
-    static_cast<long>(x),                                               \
+    static_cast<long>(y),                                               \
   };
 
 #define REQ_DOUBLE_ARG(I, VAR)                                          \
