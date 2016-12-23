@@ -24,7 +24,12 @@
             '<!@(GraphicsMagick-config --cflags)',
             '<!@(GraphicsMagick-config --cppflags)'
           ],
-        }]
+        }],
+	['OS=="linux"', {
+	  'cflags': [
+	    '-fPIC'
+	  ]
+	}]
       ]
     }
   ]
