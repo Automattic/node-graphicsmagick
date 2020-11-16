@@ -24,7 +24,7 @@ describe('GraphicsMagick', function () {
     it('should output format "JPEG"', function (done) {
       var img = gm.image(testJpegBuffer);
       img.format('JPEG');
-      var tmpFile = path.resolve(os.tmpDir(), 'test.jpg');
+      var tmpFile = path.resolve(os.tmpdir(), 'test.jpg');
       after(function (done) {
         fs.unlink(tmpFile, done);
       });
@@ -41,7 +41,7 @@ describe('GraphicsMagick', function () {
     it('should output format "PNG"', function (done) {
       var img = gm.image(testJpegBuffer);
       img.format('PNG');
-      var tmpFile = path.resolve(os.tmpDir(), 'test.png');
+      var tmpFile = path.resolve(os.tmpdir(), 'test.png');
       after(function (done) {
         fs.unlink(tmpFile, done);
       });
