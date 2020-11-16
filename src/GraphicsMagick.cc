@@ -238,10 +238,15 @@ public:
       //length = string.length();
       //blob = *string;
     } else if (Buffer::HasInstance(info[0])) {
+
+#if NODE_MAJOR_VERSION >= 10
       v8::Local<Object> bufferIn;
       if (!info[0]->ToObject(Nan::GetCurrentContext()).ToLocal(&bufferIn) || !Buffer::HasInstance(bufferIn)) {
         return Nan::ThrowTypeError("binary string input is no longer supported");
       }
+#else
+      v8::Local<Object> bufferIn = info[0]->ToObject();
+#endif
       length = Buffer::Length(bufferIn);
       blob = Buffer::Data(bufferIn);
     }
@@ -343,9 +348,12 @@ public:
       return Nan::ThrowTypeError(("Argument 0 must be a string"));
     }
 
+#if NODE_MAJOR_VERSION >= 10
     v8::Local<v8::String> string = info[0]->ToString(Nan::GetCurrentContext()).FromMaybe(v8::Local<v8::String>());
     Nan::Utf8String format(string);
-
+#else
+    Nan::Utf8String format(info[0]->ToString());
+#endif
 
     MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
     image->_format = strdup(*format);
