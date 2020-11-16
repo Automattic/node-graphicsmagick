@@ -11,11 +11,6 @@
   if (info.Length() < (N))                                              \
     return Nan::ThrowTypeError(("Expected " #N "arguments"));
 
-#define REQ_STR_ARG(I, VAR)                                             \
-  if (info.Length() <= (I) || !info[I]->IsString())                     \
-    return Nan::ThrowTypeError(("Argument " #I " must be a string"));   \
-  Nan::Utf8String VAR(info[I]->ToString());
-
 #define REQ_INT_ARG(I, VAR)                                             \
   int VAR;                                                              \
   if (info.Length() <= (I) || !info[I]->IsInt32())                      \
@@ -243,7 +238,10 @@ public:
       //length = string.length();
       //blob = *string;
     } else if (Buffer::HasInstance(info[0])) {
-      v8::Local<Object> bufferIn = info[0]->ToObject();
+      v8::Local<Object> bufferIn;
+      if (!info[0]->ToObject(Nan::GetCurrentContext()).ToLocal(&bufferIn) || !Buffer::HasInstance(bufferIn)) {
+        return Nan::ThrowTypeError("binary string input is no longer supported");
+      }
       length = Buffer::Length(bufferIn);
       blob = Buffer::Data(bufferIn);
     }
@@ -340,7 +338,15 @@ public:
 
   static void format(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     Nan::HandleScope scope;
-    REQ_STR_ARG(0, format)
+
+    if (info.Length() <= 0 || !info[0]->IsString()) {
+      return Nan::ThrowTypeError(("Argument 0 must be a string"));
+    }
+
+    v8::Local<v8::String> string = info[0]->ToString(Nan::GetCurrentContext()).FromMaybe(v8::Local<v8::String>());
+    Nan::Utf8String format(string);
+
+
     MagickImage *image = Nan::ObjectWrap::Unwrap<MagickImage>(info.This());
     image->_format = strdup(*format);
     info.GetReturnValue().SetUndefined();
